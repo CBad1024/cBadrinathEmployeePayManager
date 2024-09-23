@@ -4,7 +4,8 @@ import static java.time.temporal.ChronoUnit.*;
 import java.util.*;
 import java.time.*;
 import java.util.stream.Collectors;
-
+import static java.time.DayOfWeek.*;
+//TOTAL PAY: EVERYTHING THAT THEY'VE EVER BEEN PAID
 public class TimeCard implements Serializable {
 //    private List<Double> hoursWorked;
     private Map<String, Long> loggedMinutes;
@@ -20,9 +21,10 @@ public class TimeCard implements Serializable {
     private List<String> timestampsHistory; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
     static final DateTimeFormatter dtFormat = DateTimeFormatter.ofPattern("MM-d-yy H:mm");
     static final DateTimeFormatter dFormat = DateTimeFormatter.ofPattern("MM-d-yy");
+    private int dayInPeriod;
+    private boolean clockedIn;
 
-    static final int PAY_PERIOD = 7;
-    private int dayInCycle;
+    private List<LocalDate> holidays;
 
 
 
@@ -42,9 +44,18 @@ public class TimeCard implements Serializable {
     }
 
     public void clockIn(LocalDateTime dateTime){
-        this.clockInTime = dateTime;
-        //TODO catch if clock in is done more than once before clocking out
+        if (!this.clockedIn) {
+            if (!dateTime.getDayOfWeek().equals(clockInTime.getDayOfWeek())) {
+                dayInPeriod++;
+            }
 
+            this.clockInTime = dateTime;
+            this.clockedIn = true;
+            return;
+
+            //TODO catch if clock in is done more than once before clocking out
+        }
+        System.out.println("You are already clocked in. Please clock out before clocking in again.");
     }
 
     public void clockOut(LocalDateTime clockOutTime){
@@ -59,12 +70,16 @@ public class TimeCard implements Serializable {
 
     }
 
-    public long getTotalHours(){
+    public double getTotalHours(){
         return this.loggedMinutes.values().stream().collect(Collectors.summingLong(Long::longValue))/60;
     }
 
-    public long getBaseHours(){
+    public double getBaseHours(){
         return getTotalHours() - getOvertimeHours();
+    }
+
+    public int weeksWorked(){
+        return (int) this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5;
     }
 
 
@@ -76,31 +91,45 @@ public class TimeCard implements Serializable {
         this.timestamps.add(index, record);
     }
 
-    public long getOvertimeHours(){
+    public boolean isHoliday(LocalDate dt){
+        for (LocalDate date:
+             this.holidays) {
+            if (dt.equals(date)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public double getOvertimeHours(){
         //Calculate for 8+ hrs/day
         // TODO - need to check if partial hours can be rounded - Check with Mr Crute
-        Map<String, Long> hoursWorked = new HashMap<String, Long>();
+        Map<String, Double> hoursWorked = new HashMap<String, Double>();
         this.loggedMinutes.forEach((dt, min) ->{
-            hoursWorked.put(dt, min/60);
+            hoursWorked.put(dt, min/60.0);
         });
-        Map<String, Long> overtimeHoursPerDay = new HashMap<>();
+        Map<String, Double> overtimeHoursPerDay = new HashMap<>();
         hoursWorked.forEach((dt, hr) -> {
-            overtimeHoursPerDay.put(dt, hr - 8);
+            overtimeHoursPerDay.put(dt, hr - 8.0);
         });
 
 //        System.out.println(overtimeHoursPerDay);
 
         //Calculate for 40+ hrs/7 days
-       long totalHoursWorked = hoursWorked.values().stream().collect(Collectors.summingLong(Long::longValue));
+       double totalHoursWorked = hoursWorked.values().stream().collect(Collectors.summingDouble(Double::doubleValue));
 
 //       long weeksWorked = this.loggedMinutes.size()/7;
        long weeksWorked = this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5;
         System.out.println("Weeks Worked "+ weeksWorked);
 
         //Total Overtime Hours = (TotalHoursPerWeek - 40*Weeks Worked) - TotalDailyOvertime
-        long totalDailyOvertimePerWeek = overtimeHoursPerDay.values().stream().filter(e -> e > 0).collect(Collectors.summingLong(Long::longValue));
+        double totalDailyOvertime = overtimeHoursPerDay.values().stream().filter(e -> e > 0).collect(Collectors.summingDouble(Double::doubleValue));
         //fixme redo overtime
-        long totalOvertimeHours = weeksWorked > 0 && totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertimePerWeek ;
+
+
+//        double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
+        double totalOvertimeHours = totalDailyOvertime + totalHoursWorked - 40.0/7*weeksWorked;
+
 
 
         return totalOvertimeHours;
@@ -111,6 +140,10 @@ public class TimeCard implements Serializable {
         this.loggedMinutes = new HashMap<>();
         this.timestampsHistory.addAll(timestamps);
         this.timestamps = new ArrayList<>();
+    }
+
+    public boolean isWeekend(LocalDateTime dt){
+        return dt.getDayOfWeek().equals(SATURDAY) || dt.getDayOfWeek().equals(SUNDAY);
     }
 
 

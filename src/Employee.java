@@ -3,7 +3,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Employee implements Serializable {
-
+//TODO say in UI how many days in pay period so far
 
     private final String name;
     private final String empId;
@@ -12,7 +12,7 @@ public class Employee implements Serializable {
     protected TimeCard timeCard;
     double moneyDue = 0;
     private boolean isSalaried;
-    private double payoutAmt;
+    private double payoutAmt; //either wage/hr or salary/week
     private int daysOffRemaining;
 
     private static final double dailySalaryRate = 100.0;
@@ -29,7 +29,43 @@ public class Employee implements Serializable {
         this.daysOffRemaining = 20;
     }
 
-    public static Employee salariedEmployee(String name,String empId, String dob, String address, double payoutAmt){
+    public String getEmpId() {
+        return empId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDob() {
+        return dob;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public TimeCard getTimeCard() {
+        return timeCard;
+    }
+
+    public double getMoneyDue() {
+        return moneyDue;
+    }
+
+    public boolean isSalaried() {
+        return isSalaried;
+    }
+
+    public double getPayoutAmt() {
+        return payoutAmt;
+    }
+
+    public int getDaysOffRemaining() {
+        return daysOffRemaining;
+    }
+
+    public static Employee salariedEmployee(String name, String empId, String dob, String address, double payoutAmt){
         return new Employee(name , empId, dob, address, true, payoutAmt);
     }
 
@@ -46,20 +82,28 @@ public class Employee implements Serializable {
     }
     public double calculatePay(){ //Calculates how much money must be paid to given wage employee
         if (this.isSalaried){
-            return 0; //FIXME fix salary rate
-//            return dailySalaryRate; //FIXME fix salary rate
+
+            return this.payoutAmt * this.timeCard.weeksWorked();
+
         }
-        else{long overtimeDue = this.timeCard.getOvertimeHours();
-            long totalNonOvertime = this.timeCard.getTotalHours() - overtimeDue;
+        else{
+            double overtimeDue = this.timeCard.getOvertimeHours();
+            double totalNonOvertime = this.timeCard.getTotalHours() - overtimeDue;
 
             return Math.round((totalNonOvertime  + overtimeDue * 1.5) * this.payoutAmt * 100)/100;}
 
 
     }
 
+
     @Override
     public int hashCode() {
         return Objects.hash(empId);
+    }
+
+    public double allMoneyEarned(){
+        return 1;
+        //FIXME
     }
 
     @Override
@@ -82,9 +126,14 @@ public class Employee implements Serializable {
 
     public String payoutReport(){
         //TODO this needs to be completed.
+        String paymentInfo = this.isSalaried() ? "Salary: $" + this.payoutAmt + "per week" : "Wage: $" + this.payoutAmt + "per hour";
         StringBuilder output = new StringBuilder()
                 .append("Name: " + this.name + "\n")
-                .append("EmpId : " + this.empId + "\n");
+                .append("EmpId : " + this.empId + "\n")
+                .append(paymentInfo + "\n")
+                .append("Pay this period: $" + moneyDue + "\n")
+                .append("Total Pay: " + )
+
         return output.toString();
     }
 

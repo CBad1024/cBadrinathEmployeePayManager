@@ -4,13 +4,13 @@ import java.io.*;
 
 
 
-
 public class Main {
     static String savefile = "EmployeeRecords.ser";
     static Scanner in = new Scanner(System.in);
+    static Set<Employee> empSet = loadOnStart();
     public static void main(String[] args) {
-        Set<Employee> empList = loadOnStart();
-        empList.forEach(System.out::println);
+
+        empSet.forEach(System.out::println);
         try {
 
             // Get User Input
@@ -21,8 +21,8 @@ public class Main {
                     switch (input) {
                         case 1 -> {
                             Set<Employee> empSetNew = provideEmployeeDetails();
-                            empSetNew.addAll(empList);
-                            empList = new HashSet<>(empSetNew);
+                            empSetNew.addAll(empSet);
+                            empSet = new HashSet<>(empSetNew);
                         }
                         case 2 -> {
                             generatePayReport();
@@ -38,6 +38,15 @@ public class Main {
                         }
                         case 5 -> {
                             //Exit
+                            saveOnExit(empSet);
+                        }
+                        case 6 ->{
+                            //holiday
+                            addHoliday();
+                        }
+                        case 7 ->{
+                            //next day
+                            endDay();
                         }
 
 
@@ -82,7 +91,7 @@ public class Main {
             //
         } catch (Exception e){
             if (e instanceof InterruptedException) {
-                saveOnExit(empList);
+                saveOnExit(empSet);
             }
             System.exit(0);
 
@@ -91,13 +100,39 @@ public class Main {
 
     }
 
+    private static void endDay() {
+
+    }
+
+    private static void addHoliday() {
+        System.out.println("What day would you like to be a holiday?");
+        System.out.println("Please enter a date in the form MM-d-yyyy");
+        String date = in.next();
+
+    }
+
+
     private static void empLogin() {
         System.out.println("Please enter your employee ID");
+        String ID = in.next();
+        for (Employee e : empSet){
+            if (e.getEmpId().equals(ID)){
+                empInterface(e);
+                return;
+            }
+        }
+        System.out.println("No such employee exists");
+    }
+
+    private static void empInterface(Employee e){
+        System.out.println("Logged in as " + e.getName());
+
 
     }
 
     private static void loadPastRecords() {
         //fixme
+
     }
 
     private static void generatePayReport() {
@@ -107,7 +142,7 @@ public class Main {
     private static Set<Employee> provideEmployeeDetails() {
         Set<Employee> empList = new HashSet<>();
         while (true ) {
-            System.out.println("Please list the employee data...\nName: ");
+            System.out.println("Please list the employee data...\nName (Last,First NO SPACE): ");
             String name = in.next().strip();
             System.out.println("EmpID: ");
             String empId = in.next().strip();
@@ -151,26 +186,20 @@ public class Main {
     }
 
     private static int getTopLevelInput() throws InvalidInputException{
-
         System.out.println("Welcome to the Badrinath Employee Database (BED). What would you like to do?");
-        System.out.println("[1] Provide employee details\n[2] Generate Pay Report\n[3] View employee past records\n[4] Employee Sign-In\n[5]Exit\n");
+        System.out.println("[1] Provide employee details\n[2] Generate Pay Report\n[3] View employee past records\n[4] Employee Sign-In\n[5] Exit\n[6] Add Holiday");
         int input = in.nextInt();
         switch(input){
-            case 1, 2, 3, 4, 5:
+            case 1, 2, 3, 4, 5, 6:
                 return input;
             default:
                 System.out.println("Please choose from the valid options");
                 throw new InvalidInputException();
         }
     }
-
-    public void runPayReport(){
+    public void runPayReport() {
         //run pay report & store in pay report file
         //Move temporary record info to permanent record file
-    }
-
-    public void createEmployee(){
-        //to make employee
     }
     public static void saveOnExit(Set<Employee> empSet){
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(savefile))){
