@@ -132,7 +132,7 @@ public class Employee implements Serializable {
                 .append("EmpId : " + this.empId + "\n")
                 .append(paymentInfo + "\n")
                 .append("Pay this period: $" + moneyDue + "\n")
-                .append("Total Pay: " + )
+                .append("Total Pay: ");
 
         return output.toString();
     }
