@@ -1,6 +1,7 @@
 package main;
 
 import java.io.Serializable;
+import java.sql.SQLOutput;
 import java.time.format.DateTimeFormatter;
 import static java.time.temporal.ChronoUnit.*;
 import java.util.*;
@@ -16,17 +17,11 @@ public class TimeCard implements Serializable {
         this.loggedMinutes = loggedMinutes;
     }
 
-    private LocalDate currentDay;
-
     private Map<LocalDate, Long> loggedMinutesHistory;
-    private LocalDateTime clockInTime ; //"HH:MM"
-//    private int dayInCycle;
+    private LocalTime clockInTime ; //"HH:MM"
+
     private List<String> timestamps; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
     private List<String> timestampsHistory; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
-    static final DateTimeFormatter dtFormat = DateTimeFormatter.ofPattern("MM-d-yy H:mm");
-    static final DateTimeFormatter dFormat = DateTimeFormatter.ofPattern("MM-d-yy");
-    private int dayInPeriod;
-
     public static LocalDate currentDate ;
     public boolean isClockedIn() {
         return clockedIn;
@@ -39,8 +34,7 @@ public class TimeCard implements Serializable {
     public TimeCard(){
         this.loggedMinutes = new HashMap<LocalDate, Long>();
         this.timestamps = new ArrayList<String>();
-//        this.dayInCycle = 0;
-        this.clockInTime = LocalDateTime.MIN;
+        this.clockInTime = LocalTime.MIN;
         this.timestampsHistory = new ArrayList<>();
         this.loggedMinutesHistory = new HashMap<>();
 
@@ -48,17 +42,11 @@ public class TimeCard implements Serializable {
 
     }
 
-    public void clockIn(LocalDateTime dateTime){
+    public void clockIn(LocalTime time){
         if (!this.clockedIn) {
-            if (!dateTime.getDayOfWeek().equals(clockInTime.getDayOfWeek())) {
-                dayInPeriod++;
-            }
-
-            this.clockInTime = dateTime;
+            System.out.println("Clocking In ... ");
+            this.clockInTime = time;
             this.clockedIn = true;
-            return;
-
-            //TODO catch if clock in is done more than once before clocking out
         }
 //        System.out.println("You are already clocked in. Please clock out before clocking in again.");
     }
@@ -72,36 +60,30 @@ public class TimeCard implements Serializable {
         return biggest;
     }
 
-    public void clockOut(LocalDateTime clockOutTime){
-        long minutesWorked = MINUTES.between(clockInTime, clockOutTime);
-        long minutesTotal = this.loggedMinutes.get(clockInTime.toLocalDate()) == null ? minutesWorked :  this.loggedMinutes.get(clockInTime.toLocalDate()) + minutesWorked;
-
-
-        this.loggedMinutes.put(clockInTime.toLocalDate(), minutesTotal);
-
-        this.timestamps.add(clockInTime + "     -     " + clockOutTime);
-        this.clockedIn = false;
+    public void clockOut(LocalTime clockOutTime){
+        if (clockedIn) {
+            long minutesWorked = MINUTES.between(clockInTime, clockOutTime);
+            if (minutesWorked > 0) {
+                long minutesTotal = this.loggedMinutes.get(TimeCard.currentDate) == null ? minutesWorked : this.loggedMinutes.get(TimeCard.currentDate) + minutesWorked;
+                this.loggedMinutes.put(TimeCard.currentDate, minutesTotal);
+                LocalDateTime clockInDateTime = LocalDateTime.of(TimeCard.currentDate, clockInTime);
+                LocalDateTime clockOutDateTime = LocalDateTime.of(TimeCard.currentDate, clockOutTime);
+                this.timestamps.add(clockInDateTime + "     -     " + clockOutDateTime);
+                this.clockedIn = false;
+            }else {
+                System.out.println("Clock out time should be greater than clock in time ..");
+            }
+        }else {
+            System.out.println("Please clock in before clocking out");
+        }
     }
 
     public double getTotalHours(){
         return this.loggedMinutes.values().stream().collect(Collectors.summingLong(Long::longValue))/60;
     }
 
-    public double getBaseHours(){
-        return getTotalHours() - getOvertimeHours();
-    }
-
     public int weeksWorked(){
-        return (int) this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5;
-    }
-
-
-    public void deletePreviousRecord(int index){
-        this.timestamps.remove(index);
-    }
-
-    public void addNewRecord(int index, String record){
-        this.timestamps.add(index, record);
+        return (int) Math.ceil(this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5.0);
     }
 
     public boolean isHoliday(LocalDate dt){
@@ -126,7 +108,7 @@ public class TimeCard implements Serializable {
             overtimeHoursPerDay.put(dt, hr - 8.0);
         });
 
-//        System.out.println(overtimeHoursPerDay);
+
 
         //Calculate for 40+ hrs/7 days
        double totalHoursWorked = hoursWorked.values().stream().collect(Collectors.summingDouble(Double::doubleValue));
@@ -141,7 +123,6 @@ public class TimeCard implements Serializable {
 
 
         double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
-//        double totalOvertimeHours = totalDailyOvertime + totalHoursWorked - 40.0/7*weeksWorked;
 
 
 
@@ -155,10 +136,9 @@ public class TimeCard implements Serializable {
         this.timestamps = new ArrayList<>();
     }
 
-    public boolean isWeekend(LocalDateTime dt){
-        return dt.getDayOfWeek().equals(SATURDAY) || dt.getDayOfWeek().equals(SUNDAY);
+    public List<String> getTimestamps() {
+        return timestamps;
     }
-
 
     public String printCurrentTimestamps() {
         String s = this.timestamps.stream().map(e -> e + "\n").collect(Collectors.joining());
@@ -168,16 +148,6 @@ public class TimeCard implements Serializable {
     public String printTimestampHistory() {
         String s = this.timestampsHistory.stream().map(e -> e + "\n").collect(Collectors.joining());
         return s;
-    }
-
-    public void incrementDay() {
-        Utils.loadHolidays().forEach(e -> {
-            if(getDay().plusDays(1l).equals(e)){
-                return;
-            }
-        });
-        System.out.println("Adding a day to a Time Card!");
-        this.loggedMinutes.put(getDay().plusDays(1l), 0l);
     }
 
     public double getNonOvertimeHours() {

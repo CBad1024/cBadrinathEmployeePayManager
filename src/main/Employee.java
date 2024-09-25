@@ -6,12 +6,13 @@ import static java.text.MessageFormat.format;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Objects;
 
 public class Employee implements Serializable {
 //TODO say in UI how many days in pay period so far
 
-    private final String name;
+    private String name;
     private final String empId;
     private final LocalDate dob;
     private String address;
@@ -19,7 +20,7 @@ public class Employee implements Serializable {
     double moneyDue = 0;
     double totalPay = 0;
     private boolean isSalaried;
-    private double payRate; //either wage/hr or salary/week
+    private double payRate; //either wage/hr or salary/year
     private int daysOffRemaining;
 
 
@@ -40,6 +41,10 @@ public class Employee implements Serializable {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name){
+        this.name = name;
     }
 
     public LocalDate getDob() {
@@ -78,11 +83,11 @@ public class Employee implements Serializable {
         return new Employee(name, empId, dob, address, false, payoutAmt);
     }
 
-    public void clockIn(LocalDateTime dateTime) {
-        this.timeCard.clockIn(dateTime);
+    public void clockIn(LocalTime time) {
+        this.timeCard.clockIn(time);
     }
 
-    public void clockOut(LocalDateTime dateTime) {
+    public void clockOut(LocalTime dateTime) {
         this.timeCard.clockOut(dateTime);
     }
 
@@ -100,7 +105,7 @@ public class Employee implements Serializable {
 
             int daysNotWorked = -1 * daysOffRemaining;
 
-            moneyDue = daysOffRemaining > 0 ? this.timeCard.weeksWorked() * payRate : this.timeCard.weeksWorked() * payRate - daysNotWorked * dailySalary;
+            moneyDue = daysOffRemaining > 0 ? this.timeCard.weeksWorked() * weeklySalary : this.timeCard.weeksWorked() * weeklySalary - daysNotWorked * dailySalary;
 
         } else { //Wage Employee pay logic: paid based on hours worked. Overtime also calculated.
             double overtimeDue = this.timeCard.getOvertimeHours();
@@ -109,9 +114,7 @@ public class Employee implements Serializable {
             moneyDue = Math.round((totalNonOvertime + overtimeDue * 1.5) * this.payRate * 100) / 100;
         }
         return moneyDue;
-
     }
-
 
     @Override
     public int hashCode() {
@@ -151,24 +154,27 @@ public class Employee implements Serializable {
                 .append("EmpId : " + this.empId + "\n")
                 .append(paymentInfo + "\n")
                 .append("Pay this period: $" + moneyDue + "\n")
-                .append("Total Pay (including current pay cycle): $" + (allMoneyEarned() + moneyDue));
+                .append("Total Pay (including current pay cycle): $" + (allMoneyEarned() + moneyDue) + "\n");
 
 
         return output.toString();
     }
 
+
+
     public LocalDate getDay() {
         return this.timeCard.getDay();
     }
 
-    public void incrementDay() {
-        this.timeCard.incrementDay();
-    }
 
 
     public void storeMoneyData() {
         totalPay += moneyDue;
         moneyDue = 0;
+    }
+
+    public double getWeeklyPayRate(){
+        return getPayRate()/52.0;
     }
 
 

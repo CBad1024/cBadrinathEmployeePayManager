@@ -1,7 +1,6 @@
 package main;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -15,13 +14,13 @@ public class Main {
     static String payReportFile = "PAYREPORT.payrpt";
     static Scanner in = new Scanner(System.in);
     static Set<Employee> empSet = loadOnStart();
-    static DateTimeFormatter timeFormatter =  DateTimeFormatter.ofPattern("hh:mm");
-
-    static LocalDate startDate = Utils.startDate;
-    static boolean isDayStarted = (startDate != null);
+    static LocalDate startDate;
+    static boolean dayHasStarted = (startDate != null);
 
     public static void main(String[] args) {
+        in.useDelimiter("\\n");
 
+        // FIXME - Remove this statement before submitting
         empSet.forEach(System.out::println);
         try {
 
@@ -37,12 +36,11 @@ public class Main {
                             empSet = new HashSet<>(empSetNew);
                         }
                         case 2 -> {
-                            generatePayReport(); //TODO
+                            generatePayReport();
                         }
-                        case 3 -> {
-                            //View employee past records
-                            loadPastRecords();
 
+                        case 3 -> {
+                            System.out.println("Please open the files that end in .payrpt format ..");
                         }
                         case 4 -> {
                             //Emp signin
@@ -70,36 +68,12 @@ public class Main {
 
 
                 } catch (InvalidInputException e) {
-
+                    System.out.println("Please input a valid response.");
                 }
 
 
             }
-            //Get input
 
-            //ask to 1: Provide Emp details
-
-//            Scanner in = new Scanner(System.in);
-//
-//            System.out.println("Hello! Welcome to Badrinath Employee Management System (BEMS). What would you like to do?");
-
-
-            //Store employee records
-
-
-            //Timekeeping
-
-
-            //Pay Calculation
-
-
-            //Error Handling
-
-
-            //Report
-
-
-            //
         } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 saveOnExit(empSet);
@@ -112,26 +86,24 @@ public class Main {
     }
 
     private static void startDay() {
-        if (isDayStarted) {
+        if (dayHasStarted) {
             System.out.println("You have already started the day. ");
             return;
         }
         if (startDate != null) {
-            LocalDate nextDay = getNextWorkingDay(startDate);
-            String input = getInput("Starting Day [ " + startDate.format(DateTimeFormatter.ISO_DATE) + " ] : Press Any Key ..");
-            isDayStarted = true ;
-            Utils.startDate = nextDay;
-            startDate = nextDay ;
+            LocalDate nextDay = getNextWorkingDay(TimeCard.currentDate);
+            dayHasStarted = true;
+            TimeCard.currentDate = nextDay;
+            String input = getInput("Starting Day [ " + TimeCard.currentDate.format(DateTimeFormatter.ISO_DATE) + " ] : Press Any Key ..");
         } else {
-            while(true){
-                LocalDate date = checkValidDate( " Start Day [YYYY-MM-dd] : " );
-                if(TimeCard.holidays.contains(date)){
+            while (true) {
+                LocalDate date = checkValidDate(" Start Day [YYYY-MM-dd] : ");
+                if (TimeCard.holidays.contains(date)) {
                     System.out.println("That day is a holiday. Please enter a non-holiday...");
-                }
-                else{
+                } else {
                     startDate = date;
-                    Utils.startDate = startDate ;
-                    isDayStarted = true;
+                    TimeCard.currentDate = startDate;
+                    dayHasStarted = true;
                     break;
                 }
             }
@@ -140,30 +112,31 @@ public class Main {
     }
 
     private static LocalDate getNextWorkingDay(LocalDate dt) {
-        while(true){
+        while (true) {
             LocalDate nextDay = dt.plusDays(1);
-            if(TimeCard.holidays.contains(nextDay)){
+            if (TimeCard.holidays.contains(nextDay)) {
                 dt = nextDay;
-            }
-            else{
+            } else {
                 return nextDay;
             }
         }
     }
+
     private static void endDay() {
-        if (!isDayStarted) {
+        if (!dayHasStarted) {
             System.out.println("Day has already ended. Please start the day first ..");
             return;
         }
-        String input = getInput("Would you like to like to end the day [y/n]? Today is " + startDate);
-        switch(input.toUpperCase()){
+        String input = getInput("Would you like to like to end the day [y/n]? Today is " + TimeCard.currentDate);
+        switch (input.toUpperCase()) {
             case "Y":
-                empSet.forEach(e -> {
-                    e.incrementDay();
-                });
+                dayHasStarted = false;
+                break;
             default:
                 System.out.println("OK! Returning to homescreen...");
         }
+
+
     }
 
     private static void addHoliday() {
@@ -172,8 +145,8 @@ public class Main {
         Set<LocalDate> dateSet = new HashSet<>();
         dateSet.addAll(TimeCard.holidays);
 
-        if(input.equalsIgnoreCase("Y")){
-            while(true){
+        if (input.equalsIgnoreCase("Y")) {
+            while (true) {
                 LocalDate date = checkValidDate("Enter a date (YYYY-MM-dd). If you want to exit, enter 2000-01-01");
                 if (date.equals(LocalDate.parse("2000-01-01"))) {
                     break;
@@ -191,26 +164,26 @@ public class Main {
     }
 
     private static int getIntInput(String prompt) {
-        while (true){
-            try{
+        while (true) {
+            try {
                 System.out.println(prompt);
                 return in.nextInt();
-            } catch ( NoSuchElementException | IllegalStateException e){
+            } catch (NoSuchElementException | IllegalStateException e) {
                 System.out.println("Please enter valid number .. ");
             }
         }
     }
 
     private static void empLogin() {
-        if (!isDayStarted) {
+        if (!dayHasStarted) {
             System.out.println("Before checking in as an employee, Start the day ..");
-            return ;
+            return;
         }
         String ID = getInput("Please enter your employee ID");
         Employee emp = empSet.stream().filter(e -> e.getEmpId().equalsIgnoreCase(ID)).findFirst().orElse(null);
-        if(emp == null){
+        if (emp == null) {
             System.out.println("No such employee exists");
-        } else{
+        } else {
             empInterface(emp);
         }
     }
@@ -218,62 +191,114 @@ public class Main {
     private static void empInterface(Employee e) {
         System.out.println("Logged in as " + e.getName());
         while (true) {
-            int input =  getIntInput("What would you like to do?\n[1] Clock In\n[2] Clock Out\n[3] Return to start");
+            int input = getIntInput("What would you like to do?\n[1] Clock In\n[2] Clock Out\n[3] Edit Records\n[4] View Timestamps\n[5] Return to start");
             switch (input) {
                 case 1:
                     if (!e.timeCard.isClockedIn()) {
-                        LocalDate date = checkValidDate("Please enter the date (YYYY-MM-dd)");
                         LocalTime time = checkValidTime("Please enter time (HH:mm) in 24 hour format:");
-                        e.clockIn(LocalDateTime.of(date, time));
+                        e.clockIn(time);
                     } else {
                         System.out.println("Already clocked in. Please clock out ...");
                     }
-                    break ;
+                    break;
                 case 2:
                     if (e.timeCard.isClockedIn()) {
                         LocalTime t = checkValidTime("Please enter clock out (HH:mm) in 24 hour format:");
-                    }else {
+                        e.clockOut(t);
+                    } else {
                         System.out.println("Please clock in first before clocking out .. ");
                     }
                     break;
-                default:
+                case 3:
+                    editRecords(e);
                     break;
+                case 4:
+                    while (true) {
+                        String response = getInput("Would you like to look at current or past timestamps? [c/p] (Press any other key to exit to home screen)");
+                        switch (response.toUpperCase()) {
+                            case "C":
+                                System.out.println(e.timeCard.printCurrentTimestamps());
+                                break;
+                            case "P":
+                                System.out.println(e.timeCard.printTimestampHistory());
+                                break;
+                            default:
+                                return;
+                        }
+                    }
+                default:
+                    return;
             }
 
         }
+
     }
 
-    private static void loadPastRecords() { //Loads previous pay report records.
-        //fixme
+    private static void editRecords(Employee e) {
+
+        //Following Changes are possible:
+        //Name, Address, Salary/Wage
+        //Time Stamps
+        String response =  getInput("Would you like to edit timestamps or employee information? [t/e]");
+        switch (response.toUpperCase()){
+            case "T":
+                String input1 = getInput("Here are records from the current period:\n" + e);
+                e.timeCard.getTimestamps().forEach(el -> {
+                    System.out.println(el);
+                });
+                break;
+            case "E":
+                String input = getInput("Which field would you like to change? (Name [n] and Address [a] can be changed).\n" + e);
+                switch (input.toUpperCase()) {
+                    case "N":
+                        String res = getInput("New Name:");
+                        e.setName(res);
+                        String input2 = getInput("Confirm: New Name is " + e.getName() + " [y/n]");
+                        if (input2.equalsIgnoreCase("y")) {
+                            System.out.println("Record Updated. Returning to main menu...");
+                            return;
+                        }
+                    case "A":
+                        String response2 = getInput("New Address:");
+                        e.setName(response2);
+                        String input3 = getInput("Confirm: New Address is " + e.getName() + " [y/n]");
+                        if (input3.equalsIgnoreCase("y")) {
+                            System.out.println("Record Updated. Returning to main menu...");
+                            return;
+                        }
 
 
+                }
+        }
     }
 
     private static void generatePayReport() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(startDate + "_" +  payReportFile))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TimeCard.currentDate + "_" + payReportFile))) {
             String header = "PAYOUT REPORT\n" +
                     "____________________________________________________\n\n" +
-                    "Start of Period: " + startDate + "\t\tDay of Filing" + TimeCard.currentDate + "\n" +
-                    "Total Days in Period" + startDate.until(TimeCard.currentDate) + "\n\n\n" +
+                    "Start of Period: " + startDate + "\t\tDay of Filing : " + TimeCard.currentDate + "\n" +
+                    "Total Days in Period  " + startDate.until(TimeCard.currentDate).getDays() + "\n\n\n" +
                     "EMPLOYEE PAYOUT\n" +
-                    "____________________________________________________\n\n" ;
+                    "____________________________________________________\n\n";
             writer.write(header);
-            empSet.forEach( e ->
+            System.out.print(header);
+            empSet.forEach(e ->
             {
                 try {
                     writer.write(e.payReport());
+                    System.out.print(e.payReport());
+                    e.timeCard.moveRecordsToHistory();
+                    e.storeMoneyData();
                 } catch (IOException ex) {
                     System.out.println("Error while writing Payout Report ..");
                 }
             });
 
-        } catch (IOException ioe){
 
+        } catch (IOException ioe) {
+            System.out.println("Error in writing to files. Returning to main...");
         }
-
-        // FIXME
     }
-
 
 
     public static Set<Employee> provideEmployeeDetails() {
@@ -285,7 +310,9 @@ public class Main {
 
             LocalDate dob = checkValidDate("DOB (YYYY-MM-dd): ");
 
-            String address = getInput("Address: ");
+            in.nextLine();
+
+            String address = getFullInput("Address: ");
 
             boolean isSalaried = checkSalaried();
 
@@ -303,6 +330,11 @@ public class Main {
             }
         }
         return empList;
+    }
+
+    private static String getFullInput(String prompt) {
+        System.out.println(prompt);
+        return in.nextLine();
     }
 
 
@@ -373,26 +405,25 @@ public class Main {
         }
     }
 
-    public void runPayReport() {
-        //run pay report & store in pay report file
-        //Move temporary record info to permanent record file
-    }
-
     public static void saveOnExit(Set<Employee> empSet) {
         try (
                 ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(savefile));
-                ObjectOutputStream oosUtils = new ObjectOutputStream(new FileOutputStream("Utils-"+ savefile));
+                ObjectOutputStream oosStartDate = new ObjectOutputStream(new FileOutputStream("StartDate-" + savefile));
+                ObjectOutputStream oosCurrentDate = new ObjectOutputStream(new FileOutputStream("CurrentDate-" + savefile));
         ) {
             oos.writeObject(empSet);
-            Utils u = new Utils();
-            oosUtils.writeObject(u);
-            System.out.println("I am being called and I wrote data");
+            LocalDate dt = TimeCard.currentDate;
+            oosCurrentDate.writeObject(dt);
+
+            LocalDate startDate = Main.startDate;
+            oosStartDate.writeObject(startDate);
+
+            System.out.println("System Exiting ... data is being saved");
         } catch (FileNotFoundException e) {
             System.out.println("Cannot find file to serialize ... Exiting without saving state ..");
         } catch (IOException e) {
             System.out.println("Cannot serialize ... Exiting without saving state ..");
-        }
-        finally{
+        } finally {
             System.exit(0);
         }
     }
@@ -403,11 +434,15 @@ public class Main {
         // Restore state of the program from a saved file which is serialized
         try (
                 ObjectInputStream ois = new ObjectInputStream(new FileInputStream(savefile));
-                ObjectInputStream oisUtils = new ObjectInputStream(new FileInputStream("Utils-"+ savefile));
+                ObjectInputStream oisCurrentDate = new ObjectInputStream(new FileInputStream("CurrentDate-" + savefile));
+                ObjectInputStream oisStartDate = new ObjectInputStream(new FileInputStream("StartDate-" + savefile));
         ) {
             employees = (Set<Employee>) ois.readObject();
-            Utils u = (Utils) oisUtils.readObject();
-            Main.startDate = Utils.startDate ;
+            LocalDate startDate = (LocalDate) oisStartDate.readObject();
+            Main.startDate = startDate;
+            LocalDate currentDate = (LocalDate) oisCurrentDate.readObject();
+            TimeCard.currentDate = currentDate;
+            System.out.println("Start Date is " + ifNull(Main.startDate, "_") + "    Current Date is " + ifNull(TimeCard.currentDate, "_"));
         } catch (FileNotFoundException fe) {
             System.out.println("Restore file not found .. Continuing ..");
         } catch (IOException e) {
@@ -417,5 +452,9 @@ public class Main {
         } finally {
             return employees;
         }
+    }
+
+    private static Object ifNull(Object o, String expr) {
+        return Objects.isNull(o) ? expr : o;
     }
 }
