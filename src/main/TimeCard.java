@@ -1,3 +1,5 @@
+package main;
+
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import static java.time.temporal.ChronoUnit.*;
@@ -8,13 +10,15 @@ import static java.time.DayOfWeek.*;
 //TOTAL PAY: EVERYTHING THAT THEY'VE EVER BEEN PAID
 public class TimeCard implements Serializable {
 //    private List<Double> hoursWorked;
-    private Map<String, Long> loggedMinutes;
+    private Map<LocalDate, Long> loggedMinutes;
 
-    public void setLoggedMinutes(Map<String, Long> loggedMinutes) {
+    public void setLoggedMinutes(Map<LocalDate, Long> loggedMinutes) {
         this.loggedMinutes = loggedMinutes;
     }
 
-    private Map<String, Long> loggedMinutesHistory;
+    private LocalDate currentDay;
+
+    private Map<LocalDate, Long> loggedMinutesHistory;
     private LocalDateTime clockInTime ; //"HH:MM"
 //    private int dayInCycle;
     private List<String> timestamps; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
@@ -22,14 +26,18 @@ public class TimeCard implements Serializable {
     static final DateTimeFormatter dtFormat = DateTimeFormatter.ofPattern("MM-d-yy H:mm");
     static final DateTimeFormatter dFormat = DateTimeFormatter.ofPattern("MM-d-yy");
     private int dayInPeriod;
+
+    public static LocalDate currentDate ;
+    public boolean isClockedIn() {
+        return clockedIn;
+    }
+
     private boolean clockedIn;
 
-    private List<LocalDate> holidays;
-
-
+    public static List<LocalDate> holidays = Utils.loadHolidaysInPlace();
 
     public TimeCard(){
-        this.loggedMinutes = new HashMap<String, Long>();
+        this.loggedMinutes = new HashMap<LocalDate, Long>();
         this.timestamps = new ArrayList<String>();
 //        this.dayInCycle = 0;
         this.clockInTime = LocalDateTime.MIN;
@@ -38,9 +46,6 @@ public class TimeCard implements Serializable {
 
 
 
-    }
-    private String getDate(LocalDateTime dt){
-        return dt.toString().split("T")[0].strip();
     }
 
     public void clockIn(LocalDateTime dateTime){
@@ -55,19 +60,27 @@ public class TimeCard implements Serializable {
 
             //TODO catch if clock in is done more than once before clocking out
         }
-        System.out.println("You are already clocked in. Please clock out before clocking in again.");
+//        System.out.println("You are already clocked in. Please clock out before clocking in again.");
+    }
+
+    public LocalDate getDay(){
+        LocalDate biggest = LocalDate.MIN;
+        for (LocalDate dt: this.loggedMinutes.keySet()) {
+            biggest = dt.compareTo(biggest) > 0 ? dt : biggest;
+
+        }
+        return biggest;
     }
 
     public void clockOut(LocalDateTime clockOutTime){
         long minutesWorked = MINUTES.between(clockInTime, clockOutTime);
-        String dt = this.getDate(clockInTime);
-        long minutesTotal = this.loggedMinutes.get(dt) == null ? minutesWorked :  this.loggedMinutes.get(dt) + minutesWorked;
+        long minutesTotal = this.loggedMinutes.get(clockInTime.toLocalDate()) == null ? minutesWorked :  this.loggedMinutes.get(clockInTime.toLocalDate()) + minutesWorked;
 
 
-        this.loggedMinutes.put(this.getDate(clockInTime), minutesTotal);
+        this.loggedMinutes.put(clockInTime.toLocalDate(), minutesTotal);
 
         this.timestamps.add(clockInTime + "     -     " + clockOutTime);
-
+        this.clockedIn = false;
     }
 
     public double getTotalHours(){
@@ -104,11 +117,11 @@ public class TimeCard implements Serializable {
     public double getOvertimeHours(){
         //Calculate for 8+ hrs/day
         // TODO - need to check if partial hours can be rounded - Check with Mr Crute
-        Map<String, Double> hoursWorked = new HashMap<String, Double>();
+        Map<LocalDate, Double> hoursWorked = new HashMap<LocalDate, Double>();
         this.loggedMinutes.forEach((dt, min) ->{
             hoursWorked.put(dt, min/60.0);
         });
-        Map<String, Double> overtimeHoursPerDay = new HashMap<>();
+        Map<LocalDate, Double> overtimeHoursPerDay = new HashMap<>();
         hoursWorked.forEach((dt, hr) -> {
             overtimeHoursPerDay.put(dt, hr - 8.0);
         });
@@ -127,8 +140,8 @@ public class TimeCard implements Serializable {
         //fixme redo overtime
 
 
-//        double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
-        double totalOvertimeHours = totalDailyOvertime + totalHoursWorked - 40.0/7*weeksWorked;
+        double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
+//        double totalOvertimeHours = totalDailyOvertime + totalHoursWorked - 40.0/7*weeksWorked;
 
 
 
@@ -157,4 +170,21 @@ public class TimeCard implements Serializable {
         return s;
     }
 
+    public void incrementDay() {
+        Utils.loadHolidays().forEach(e -> {
+            if(getDay().plusDays(1l).equals(e)){
+                return;
+            }
+        });
+        System.out.println("Adding a day to a Time Card!");
+        this.loggedMinutes.put(getDay().plusDays(1l), 0l);
+    }
+
+    public double getNonOvertimeHours() {
+        return getTotalHours() >= 40 ? 40 : getTotalHours();
+    }
+
+    public Map<LocalDate, Long> getLoggedMinutes() {
+        return loggedMinutes;
+    }
 }

@@ -1,27 +1,30 @@
+package main;
+
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static java.time.LocalDate.parse;
 
 class EmployeeTest {
 
     @org.junit.jupiter.api.Test
     void calculatePayForSalariedEmployee() {
-        Employee salEmp = Employee.salariedEmployee("Badri", "E123", "07/19/1975", "Pershing", 100);
-        Employee wageEmp = Employee.wageEmployee("Badri", "E123", "07/19/1975", "Pershing", 10);
+        Employee salEmp = Employee.salariedEmployee("Badri", "E123", parse("07/19/1975"), "Pershing", 100);
+        Employee wageEmp = Employee.wageEmployee("Badri", "E123", parse("07/19/1975"), "Pershing", 10);
         assertEquals(0, salEmp.calculatePay());
 
     }
 
     @org.junit.jupiter.api.Test
     void calculatePayForWageEmployeeWhenNoClockInOrClockOut() {
-        Employee wageEmp = Employee.wageEmployee("Badri", "E123", "07/19/1975", "Pershing", 10);
+        Employee wageEmp = Employee.wageEmployee("Badri", "E123", parse("07/19/1975"), "Pershing", 10);
         assertEquals(0, wageEmp.calculatePay());
 
     }
 
     @org.junit.jupiter.api.Test
     void calculatePayForWageEmployee() {
-        Employee wageEmp = Employee.wageEmployee("Badri", "E123", "07/19/1975", "Pershing", 10);
+        Employee wageEmp = Employee.wageEmployee("Badri", "E123", parse("07/19/1975"), "Pershing", 10);
         wageEmp.clockIn(LocalDateTime.now());
         long hours = 8 ;
         int expectedWage = (int) hours * 10 ;
@@ -33,7 +36,7 @@ class EmployeeTest {
 
     @org.junit.jupiter.api.Test
     void testPrint(){
-        Employee salEmp = Employee.salariedEmployee("Badri", "E123", "07/19/1975", "Pershing", 100);
+        Employee salEmp = Employee.salariedEmployee("Badri", "E123", parse("07/19/1975"), "Pershing", 100);
         salEmp.clockIn(LocalDateTime.now());
         salEmp.clockOut(LocalDateTime.now().plusHours(8));
         salEmp.timeCard.moveRecordsToHistory();
