@@ -43,12 +43,13 @@ public class TimeCard implements Serializable {
     }
 
     public void clockIn(LocalTime time){
-        if (!this.clockedIn) {
             System.out.println("Clocking In ... ");
             this.clockInTime = time;
             this.clockedIn = true;
-        }
-//        System.out.println("You are already clocked in. Please clock out before clocking in again.");
+    }
+
+    public void addZeroMinutes(){
+        this.loggedMinutes.put(TimeCard.currentDate, 0l);
     }
 
     public LocalDate getDay(){
@@ -60,8 +61,9 @@ public class TimeCard implements Serializable {
         return biggest;
     }
 
+    //TODO Fix Wage Overtime
+
     public void clockOut(LocalTime clockOutTime){
-        if (clockedIn) {
             long minutesWorked = MINUTES.between(clockInTime, clockOutTime);
             if (minutesWorked > 0) {
                 long minutesTotal = this.loggedMinutes.get(TimeCard.currentDate) == null ? minutesWorked : this.loggedMinutes.get(TimeCard.currentDate) + minutesWorked;
@@ -73,14 +75,13 @@ public class TimeCard implements Serializable {
             }else {
                 System.out.println("Clock out time should be greater than clock in time ..");
             }
-        }else {
-            System.out.println("Please clock in before clocking out");
-        }
     }
 
     public double getTotalHours(){
         return this.loggedMinutes.values().stream().collect(Collectors.summingLong(Long::longValue))/60;
     }
+
+
 
     public int weeksWorked(){
         return (int) Math.ceil(this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5.0);
@@ -98,7 +99,6 @@ public class TimeCard implements Serializable {
 
     public double getOvertimeHours(){
         //Calculate for 8+ hrs/day
-        // TODO - need to check if partial hours can be rounded - Check with Mr Crute
         Map<LocalDate, Double> hoursWorked = new HashMap<LocalDate, Double>();
         this.loggedMinutes.forEach((dt, min) ->{
             hoursWorked.put(dt, min/60.0);
@@ -113,17 +113,18 @@ public class TimeCard implements Serializable {
         //Calculate for 40+ hrs/7 days
        double totalHoursWorked = hoursWorked.values().stream().collect(Collectors.summingDouble(Double::doubleValue));
 
-//       long weeksWorked = this.loggedMinutes.size()/7;
-       long weeksWorked = this.loggedMinutes.values().stream().filter(e -> e > 0).count() / 5;
+       long weeksWorked = (long) Math.ceil(this.loggedMinutes.size()/7.0);
+;
         System.out.println("Weeks Worked "+ weeksWorked);
 
         //Total Overtime Hours = (TotalHoursPerWeek - 40*Weeks Worked) - TotalDailyOvertime
         double totalDailyOvertime = overtimeHoursPerDay.values().stream().filter(e -> e > 0).collect(Collectors.summingDouble(Double::doubleValue));
         //fixme redo overtime
+        double totalWeeklyOvertime = totalHoursWorked - 40.0*weeksWorked;
 
 
-        double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
-
+//        double totalOvertimeHours = totalHoursWorked > 40 ? (totalHoursWorked - 40*weeksWorked) : totalDailyOvertime ;
+        double totalOvertimeHours = totalDailyOvertime > totalWeeklyOvertime ? totalDailyOvertime : totalWeeklyOvertime ;
 
 
         return totalOvertimeHours;
@@ -138,6 +139,10 @@ public class TimeCard implements Serializable {
 
     public List<String> getTimestamps() {
         return timestamps;
+    }
+
+    public void setTimestamps(List<String> timestamps) {
+        this.timestamps = timestamps;
     }
 
     public String printCurrentTimestamps() {

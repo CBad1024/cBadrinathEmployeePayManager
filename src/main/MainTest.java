@@ -4,6 +4,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 
 import static java.time.LocalDate.parse;
@@ -44,7 +45,7 @@ class MainTest {
 
     @Test
     void empDetailsTest(){
-        Main.provideEmployeeDetails();
+        Main.provideEmployeeDetails(new Scanner(System.in));
 
     }
 
