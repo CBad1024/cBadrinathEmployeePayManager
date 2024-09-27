@@ -10,8 +10,6 @@ import java.time.LocalTime;
 import java.util.Objects;
 
 public class Employee implements Serializable {
-//TODO say in UI how many days in pay period so far
-
     private String name;
     private final String empId;
     private final LocalDate dob;
@@ -47,33 +45,12 @@ public class Employee implements Serializable {
         this.name = name;
     }
 
-    public LocalDate getDob() {
-        return dob;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public TimeCard getTimeCard() {
-        return timeCard;
-    }
-
-    public double getMoneyDue() {
-        return moneyDue;
-    }
-
-    public boolean isSalaried() {
-        return isSalaried;
-    }
 
     public double getPayRate() {
         return payRate;
     }
 
-    public int getDaysOffRemaining() {
-        return daysOffRemaining;
-    }
+
 
     public static Employee salariedEmployee(String name, String empId, LocalDate dob, String address, double payoutAmt) {
         return new Employee(name, empId, dob, address, true, payoutAmt);
@@ -178,6 +155,9 @@ public class Employee implements Serializable {
     }
 
 
+    public void setPayRate(double newPayRate) {
+        this.payRate = newPayRate;
+    }
 }
 
 
