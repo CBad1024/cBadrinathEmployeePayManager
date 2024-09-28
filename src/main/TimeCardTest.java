@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static java.time.LocalDate.parse;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Map ;
 import java.util.stream.Stream;
 
@@ -58,4 +59,37 @@ class TimeCardTest {
     void printHolidays(){
         TimeCard.holidays.forEach(System.out::println);
     }
+
+//    static Stream<Arguments> getTimestamps() {
+//        return Stream.of(
+//                Arguments.of()
+//        );
+//    }
+
+    @Test
+    void removeTimeStamp() {
+        TimeCard t = new TimeCard();
+        TimeCard.currentDate = parse("2010-01-01");
+
+        t.clockIn(LocalTime.parse("09:00"));
+        t.clockOut(LocalTime.parse("10:00"));
+        t.clockIn(LocalTime.parse("10:00"));
+        t.clockOut(LocalTime.parse("10:30"));
+
+        t.removeTimeStamp(0);
+        assertEquals(30, t.getLoggedMinutes().get(TimeCard.currentDate));
+        assertEquals(1, t.getTimestamps().size());
+
+        TimeCard.currentDate = parse("2010-01-02");
+
+        t.clockIn(LocalTime.parse("09:00"));
+        t.clockOut(LocalTime.parse("10:00"));
+        t.clockIn(LocalTime.parse("10:00"));
+        t.clockOut(LocalTime.parse("10:30"));
+        t.removeTimeStamp(2);
+        assertEquals(60, t.getLoggedMinutes().get(TimeCard.currentDate));
+        assertEquals(2, t.getTimestamps().size());
+
+    }
+
 }
