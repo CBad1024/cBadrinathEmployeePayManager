@@ -10,7 +10,17 @@ import java.io.*;
 import static java.lang.System.out;
 import static main.TimeCard.*;
 
-//Main Class for Employee Pay Manager. Asks user input
+/**
+ * Main class for Badrinath Employee Pay Manager.
+ * This class:
+ * - gets user input
+ * - displays command-line UI
+ * - prints pay reports on command
+ * - creates new employees on command
+ * - allows users to edit employee records
+ * - allows users to add holidays
+ * - allows users to start/end day
+ */
 public class Main {
     static String savefile = "EmployeeRecords.ser"; //File for writing the employee records
     static String payReportFile = "PAYREPORT.payrpt"; // Filename for the payout reports. Payout Reports stored in form DATE-PAYOUTREPORT.payrpt
@@ -129,11 +139,11 @@ public class Main {
     //Adds holiday to list. Asks user for dates to be added to holiday list
     private static void addHoliday(Scanner in) {
         String input = getInput("This application comes with an inbuilt holiday calendar. Would you like to view the current holiday list? [y/n]", in);
-        if(input.equalsIgnoreCase("N")){
-            return;
+        if(input.equalsIgnoreCase("Y")){
+            holidays.forEach(System.out::println);
         }
 
-        holidays.forEach(System.out::println);
+
 
         String input2 = getInput("Would you like to add a holiday? [y/n]", in);
         if(input2.equalsIgnoreCase("N")){
@@ -265,8 +275,8 @@ public class Main {
                     }
                     String input2 = getInput("Would you like to edit these records? [y/n]", in);
                     if(input2.equalsIgnoreCase("y")){
-                        int index = getIntInput("Enter the index of the record you want to edit:", in);
                         while(true){
+                            int index = getIntInput("Enter the index of the record you want to edit:", in);
                             try{
                                 alterTimeStamps(e, index); //allows user to alter timestamps
                                 break;
@@ -329,6 +339,7 @@ public class Main {
                 LocalTime start = checkValidTime("Enter the time you want to check in:", in);
                 LocalTime end = checkValidTime("Enter the time you want to check out:", in);
                 LocalDate day = checkValidDate("Enter the date of the new timestamp:", in);
+                out.println(1);
                 e.timeCard.addTimeStamp(day, start, end, index);
                 out.println("Timestamp Added! " + e.timeCard.getTimestamps().get(index) + "\n\n\n");
                 break;
@@ -411,7 +422,7 @@ public class Main {
     //Asks user for pay rate information on prospective employee
     private static double getPayout(Scanner in) {
         while (true) {
-            out.println("Payout amount(daily wage/yearly salary): ");
+            out.println("Payout amount(hourly wage/yearly salary): ");
             try {
                 double rate = in.nextDouble();
                 return rate;

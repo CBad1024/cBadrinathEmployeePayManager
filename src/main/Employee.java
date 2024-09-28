@@ -9,19 +9,29 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
 
+
+/**
+ * Employee Class for Employee Pay Manager.
+ * This class:
+ * - can be written to files as a serializable object
+ * - stores pertinent employee information
+ * - calculates pay for both salaried and wage employees. For wage employees, overtime also calculated. For salaried employees, PTO is given until daysOffRemaining reaches 0.
+ */
 public class Employee implements Serializable {
-    private String name;
+    private String name; // Employee name
     private final String empId;
     private final LocalDate dob;
     private String address;
-    TimeCard timeCard;
-    double moneyDue = 0;
-    double totalPay = 0;
+    TimeCard timeCard; //Time card: stores pertinent time information (clock in time, clock out time, etc.)
+    double moneyDue = 0; //Money that needs to be paid by next report
+    double totalPay = 0; //Total money that has been paid to this employee
     private boolean isSalaried;
     private double payRate; //either wage/hr or salary/year
-    private int daysOffRemaining;
+    private int daysOffRemaining; //number of days off an employee has remaining - initialized to 10
 
 
+
+    //Constructor
     private Employee(String name, String empId, LocalDate dob, String address, boolean isSalaried, double payRate) {
         this.name = name;
         this.empId = empId;
@@ -30,7 +40,7 @@ public class Employee implements Serializable {
         this.timeCard = new TimeCard();
         this.payRate = payRate;
         this.isSalaried = isSalaried;
-        this.daysOffRemaining = 20;
+        this.daysOffRemaining = 10;
     }
 
     public String getEmpId() {
@@ -52,6 +62,8 @@ public class Employee implements Serializable {
 
 
 
+
+    //Builder method for salaried
     public static Employee salariedEmployee(String name, String empId, LocalDate dob, String address, double payoutAmt) {
         return new Employee(name, empId, dob, address, true, payoutAmt);
     }
@@ -70,8 +82,8 @@ public class Employee implements Serializable {
 
     public double calculatePay() { //Calculates how much money must be paid to given employee
 
-        if (this.isSalaried) { //Salaried Employee Pay logic: paid the same regardless of time worked,
-            //
+        if (this.isSalaried) { //Salaried Employee Pay logic: paid the same regardless of time worked, but pay subtracted if days off remaining reaches 0.
+
             double weeklySalary = this.payRate / 52.0;
             double dailySalary = weeklySalary / 5.0;
             this.timeCard.getLoggedMinutes().values().forEach(e -> {
@@ -81,7 +93,7 @@ public class Employee implements Serializable {
             });
 
             int daysNotWorked = -1 * daysOffRemaining;
-
+            //subtract amount not worked from amount worked if daysOffRemaining < 0, return total amount worked otherwise
             moneyDue = daysOffRemaining > 0 ? this.timeCard.weeksWorked() * weeklySalary : this.timeCard.weeksWorked() * weeklySalary - daysNotWorked * dailySalary;
 
         } else { //Wage Employee pay logic: paid based on hours worked. Overtime also calculated.
@@ -98,6 +110,8 @@ public class Employee implements Serializable {
         return Objects.hash(empId);
     }
 
+
+    //returns all of the money employee has ever earned
     public double allMoneyEarned() {
         return totalPay;
     }
@@ -110,6 +124,8 @@ public class Employee implements Serializable {
         return (this.empId == ((Employee) obj).empId);
     }
 
+
+    //To String method, prints employee information
     public String toString() {
         StringBuilder output = new StringBuilder()
                 .append("Name: " + this.name + "\n")
@@ -121,8 +137,9 @@ public class Employee implements Serializable {
         return output.toString();
     }
 
+
+    //Prints employee information in pay report format
     public String payReport() {
-        //TODO this needs to be completed.
         String paymentInfo = isSalaried ? format("Salary: $ {0} per week", payRate)
                 : format("Wage: $ {0} per hour", payRate);
 
@@ -145,11 +162,13 @@ public class Employee implements Serializable {
 
 
 
+    //Stores money due to total pay after pay report is called, moving money earned during this period to history
     public void storeMoneyData() {
         totalPay += moneyDue;
         moneyDue = 0;
     }
 
+    //returns weekly payrate for a salaried employee
     public double getWeeklyPayRate(){
         return getPayRate()/52.0;
     }

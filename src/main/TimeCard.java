@@ -10,16 +10,23 @@ import java.time.*;
 import java.util.stream.Collectors;
 
 
-//Time Card Class. Stores minutes logged each day as well as current day.
+/**
+ * TimeCard class. Used to store time-related information.
+ * This class:
+ *  - logs amount of time worked in a day
+ *  - allows employees to clock in and clock out
+ *  - calculates overtime for wage employees based on hours worked per week.
+ *  - stores timestamps
+ */
 public class TimeCard implements Serializable {
     private Map<LocalDate, Long> loggedMinutes; //map of minutes logged each day.
 
 
 
     private Map<LocalDate, Long> loggedMinutesHistory;
-    private LocalTime clockInTime ; //"HH:MM"
+    private LocalTime clockInTime ; //Clcok in time, stored as "HH:mm"
     static LocalDate startDate; //Starting date for the current pay period
-
+    private LocalTime clockOutTime; //Clock out time, stored as "HH:mm"
     private List<String> timestamps; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
     private List<String> timestampsHistory; //ex. ["12/1/24;9:00-17:00", "10:00-13:00"]
     public static LocalDate currentDate ; //Stores current date
@@ -30,6 +37,15 @@ public class TimeCard implements Serializable {
     private boolean clockedIn; //stores if the employee is clocked in
 
     public static List<LocalDate> holidays = Utils.loadHolidaysInPlace();
+
+
+    public LocalTime getClockOutTime() {
+        return clockOutTime;
+    }
+
+    public LocalTime getClockInTime() {
+        return clockInTime;
+    }
 
     //initializes time card
     public TimeCard(){
@@ -45,6 +61,7 @@ public class TimeCard implements Serializable {
             System.out.println("Clocking In ... ");
             this.clockInTime = time;
             this.clockedIn = true;
+
     }
 
 
@@ -64,8 +81,9 @@ public class TimeCard implements Serializable {
     }
 
     //Clocks out user. Adds hours worked to the loggedMinutes map
-    public void clockOut(LocalTime clockOutTime){
+    public void clockOut(LocalTime clockOut){
         while(true){
+            this.clockOutTime = clockOut;
             long minutesWorked = MINUTES.between(clockInTime, clockOutTime);
             if (minutesWorked > 0) {
                 long minutesTotal = this.loggedMinutes.get(TimeCard.currentDate) == null ? minutesWorked : this.loggedMinutes.get(TimeCard.currentDate) + minutesWorked;
@@ -161,6 +179,7 @@ public class TimeCard implements Serializable {
     //Adds timestamp at given date, start and end times, and index.
     public void addTimeStamp(LocalDate day, LocalTime start, LocalTime end, int index) {
         this.timestamps.add(index, LocalDateTime.of(day, start) + "     -     " + LocalDateTime.of(day, end));
+        System.out.println(2);
         long currentMins = this.loggedMinutes.get(day);
         this.loggedMinutes.put(day, currentMins + start.until(end, MINUTES));
     }
@@ -168,15 +187,12 @@ public class TimeCard implements Serializable {
 
     //Removes timestamp from given index. This also affects the number of logged minutes for that day
     public void removeTimeStamp(int index) {
-        List<String> currentStamp = Arrays.asList(this.timestamps.get(index).split("-"));
-        currentStamp.forEach(e -> {
-            e.strip();
-        });
-        LocalDateTime dateTime = LocalDateTime.parse(currentStamp.get(0)); //start day and time
-        LocalDate day = dateTime.toLocalDate();
-        LocalTime start = dateTime.toLocalTime();
-        LocalTime end = LocalDateTime.parse(currentStamp.get(1)).toLocalTime();//end datetime -> time
-        long currentMins = this.loggedMinutes.get(day);
-        this.loggedMinutes.put(day, currentMins - start.until(end, MINUTES));
+        String t = timestamps.get(index);
+        String[] ts = t.split("     -     ");
+        LocalDateTime start = LocalDateTime.parse(ts[0].strip());
+        LocalDateTime end = LocalDateTime.parse(ts[1].strip());
+        long currentMins = this.loggedMinutes.get(start.toLocalDate());
+        this.loggedMinutes.put(start.toLocalDate(), currentMins - start.until(end, MINUTES));
+        this.timestamps.remove(index);
     }
 }
